@@ -1,0 +1,109 @@
+.playerContainer {
+    position: relative;
+    overflow: hidden;
+    height: 100%;
+    object-fit: cover;
+    align-self: stretch;
+    background-color:  #3f4143;
+  
+  }
+  
+  .active,
+  .notActive {
+    border-radius: 0.375rem; 
+    
+  }
+  
+  .username {
+    position: absolute;
+    bottom: 15px;
+    left: 9px;
+    color: white;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 5px 10px;
+    border-radius: 5px;
+  }
+  
+  
+  .icon1 {
+    color: #fff; 
+    position: absolute;
+    right: 1rem; 
+    bottom: 1rem; 
+  }
+  
+  .user {
+    color: white;
+    position: absolute;
+    font-size: 90px;
+
+    justify-content: center;
+    
+    border-radius: 100%;
+    background-color: #3f4143;
+  }
+  
+  .notPlaying {
+    display: flex;
+    align-items: center; 
+    justify-content: center; 
+  }
+
+
+  .copyContainer {
+    position: absolute;
+    display: flex;
+    flex-direction: column; /* flex-col */
+    color:white;
+    border-width: 1px; /* border */
+    border-color: rgb(255, 255, 255); /* border-white */
+    border-radius: 0.25rem; /* rounded */
+    padding: 0.3rem; /* p-2 */
+    left: 20px;
+    bottom: 18px;
+  }
+  
+  .copyContainer .copyHeading {
+    font-size: 1rem; /* text-base */
+  }
+  
+  .copyContainer .copyDescription {
+    display: flex; /* flex */
+    align-items: center; /* items-center */
+    font-size: 0.875rem; /* text-sm */
+  }
+  
+  .White {
+    filter: invert(1) brightness(100%);
+  }
+
+  .bottomMenu {
+    position: absolute;
+    display: flex;
+    justify-content: space-between; /* justify-between */
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    margin-left: auto; /* mx-auto */
+    margin-right: auto; /* mx-auto */
+    width: 300px;
+  }
+  
+  .bottomMenu .icon {
+    padding: 1rem; /* p-4 */
+    border-radius: 9999px; /* rounded-full (large value to make it round) */
+    color: #ffffff; /* text-white */
+    cursor: pointer;
+    background-color: theme("colors.secondary"); /* Replace with actual color value */
+  
+    /* Hover and active states */
+    &:hover,
+    &.active {
+      background-color: theme("colors.buttonPrimary"); /* Replace with actual color value */
+    }
+  }
+  .bottomMenu .icon.user:hover {
+    background-color: #818182 !important;
+  }
+
+ 
