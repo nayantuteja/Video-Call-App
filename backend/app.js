@@ -34,6 +34,7 @@ io.on("connection", (socket) => {
     }
   });
 
+
   socket.on("join-room", (roomId, userId) => {
     console.log(`a new user ${userId} joined room ${roomId} & ${socket.id}`);
     socket.join(roomId);

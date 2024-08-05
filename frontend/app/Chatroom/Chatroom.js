@@ -10,9 +10,7 @@ import Bottom from "../component/Bottom";
 import CopySection from "../component/CopySection";
 import styles from "./Chatroom.module.css";
 import { cloneDeep } from "lodash";
-import { PhoneOff } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Mic } from "lucide-react";
 
 function Chatroom() {
    const searchParams = useSearchParams();
@@ -271,22 +269,16 @@ function Chatroom() {
                                        {socket.id === roomhost &&
                                           item.sId != socket.id && (
                                              <div>
-                                                <button className="bg-buttonPrimary rounded-full w-[25px] items-center p-1  cursor-pointer right-6 absolute" onClick={() => removeuser(item.userid)}>
+                                                <button className="bg-buttonPrimary rounded-full w-[25px] items-center p-1  cursor-pointer right-8 absolute" onClick={() => removeuser(item.userid)}>
                                                    <img
                                                       src="https://www.svgrepo.com/show/487730/remove-profile.svg"
 
                                                       className={styles.White}
                                                    ></img>
                                                 </button>
-
-                                                {/* <PhoneOff
-                                                   size={25}
-                                                   className="bg-buttonPrimary rounded-full w-[25px] justify-between mx-2 text-white cursor-pointer right-4 absolute"
-                                                   onClick={() => removeuser(item.userid)}
-                                                /> */}
                                                 {
                                                    item.audio === false && (
-                                                      <button className="bg-blue-700 rounded-full w-[25px] justify-between p-[5px] text-white cursor-pointer right-14 absolute" onClick={() => mictoggleuser(item.userid)}>
+                                                      <button className="bg-blue-700 hover:bg-buttonPrimary rounded-full w-[25px] justify-between p-[5px] text-white cursor-pointer right-16 absolute" onClick={() => mictoggleuser(item.userid)}>
                                                          <img
                                                             src="https://www.svgrepo.com/show/491673/mic.svg"
                                                             className={styles.White}
