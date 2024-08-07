@@ -43,6 +43,13 @@
   border-radius: 10px;
 }
 
+.chat {
+  width: 25%;
+  height: 100%;
+  background-color: #cdcfd1;
+  border-radius: 10px;
+}
+
 
 .oneUser {
   grid-template-columns: 1fr;
@@ -117,6 +124,7 @@
   object-fit: cover;
   justify-items: stretch;
 }
+
 
 
 

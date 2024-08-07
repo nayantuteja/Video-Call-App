@@ -12,13 +12,13 @@ export default function Home() {
 
   function userjoin() {
     if (userName) {
-      socket.emit("username", { userName });
-      socket.on("approved username", () => {
+      // socket.emit("username", { userName });
+      // socket.on("approved username", () => {
         router.push(`/Chatroom?user=${userName}&room=${roomName}`);
-      });
-      socket.on("duplicate username", (m) => {
-        setTakenName(`username ${m.userName} is taken`);
-      });
+      // });
+      // socket.on("duplicate username", (m) => {
+      //   setTakenName(`username ${m.userName} is taken`);
+      // });
     }
   }
   

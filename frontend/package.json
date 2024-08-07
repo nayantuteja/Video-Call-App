@@ -12,6 +12,7 @@
     "@emotion/cache": "^11.11.0",
     "@mui/material-nextjs": "^5.16.1",
     "classnames": "^2.5.1",
+    "history": "^5.3.0",
     "lodash": "^4.17.21",
     "lucide-react": "^0.408.0",
     "nanoid": "^5.0.7",

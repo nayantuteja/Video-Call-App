@@ -6,7 +6,7 @@ import { Mic, Video, PhoneOff, MicOff, VideoOff, User } from "lucide-react";
 import styles from "./index.module.css"
 
 const Bottom = (props) => {
-  const { muted, playing, toggleAudio, toggleVideo, leaveRoom,toggleDataList} = props;
+  const { muted, playing, toggleAudio, toggleVideo, leaveRoom,toggleDataList,shareScreen,toggleChat} = props;
   return (
     <div className={styles.bottomMenu}>
       {muted ? (
@@ -42,12 +42,21 @@ const Bottom = (props) => {
                  className={styles.White}></img>
        </button>
 
-      <button className="rounded-full w-[55px] item-center bg-secondary p-3.5 hover:bg-gray-800" onClick={toggleDataList}>
+      <button className="rounded-full w-[55px] item-center bg-secondary p-3 hover:bg-gray-800" onClick={toggleDataList}>
          <img src="https://www.svgrepo.com/show/505539/users.svg"
                  className={styles.White}></img>
        </button>
-    
 
+       <button className="rounded-full w-[55px] item-center bg-secondary p-2.5 hover:bg-gray-800" onClick={toggleChat}>
+         <img src="https://www.svgrepo.com/show/529477/chat-line.svg"
+                 className={styles.White}></img>
+       </button>
+    
+       <button className="rounded-full w-[55px] item-center bg-secondary p-2 hover:bg-gray-800" onClick={shareScreen}>
+         <img src="https://www.svgrepo.com/show/309961/share-screen.svg"
+                 className={styles.White}></img>
+       </button>
+    
 
     </div>
   );

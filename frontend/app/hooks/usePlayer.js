@@ -7,14 +7,12 @@ import { Socket } from 'socket.io-client'
 
 
 const usePlayer = (myId, roomId, peer) => {
-    
     const [players, setPlayers] = useState({})
     const router = useRouter();
     const playersCopy = cloneDeep(players)
-    
     const playerHighlighted = playersCopy[myId]
+    // const screenStream = screenStream
     delete playersCopy[myId]
-    
     const nonHighlightedPlayers = playersCopy
     
     const leaveRoom = () => {
@@ -46,8 +44,7 @@ const usePlayer = (myId, roomId, peer) => {
             })
             socket.emit('user-toggle-video', myId, roomId)
         }
-        
-        return {players, setPlayers, playerHighlighted, nonHighlightedPlayers, toggleAudio, toggleVideo,leaveRoom}
+        return {players, setPlayers, playerHighlighted, nonHighlightedPlayers,toggleAudio, toggleVideo,leaveRoom}
     }
 
 export default usePlayer;

@@ -7,6 +7,7 @@ const server = createServer(app);
 let users = {};
 let socketids = [];
 const roomuser = [];
+const messageshistory = [];
 const io = new Server(server, {
   cors: {
     origin: "*",
@@ -24,32 +25,76 @@ const socketidToUserNameMap = new Map();
 
 io.on("connection", (socket) => {
   socket.on("username", (m) => {
-    if (!nameTaken(m.userName)) {
-      users[socket.id] = m;
-      socketids.push(socket.id);
+    if (m.userName.length == 0) {
+      socket.emit("duplicate username", m)
+    } else if (!nameTaken(m.userName)) {
       socketidToUserNameMap.set(socket.id, m.userName);
-      socket.emit("approved username");
+      socket.emit("username approved");
     } else {
-      socket.emit("duplicate username", m);
+      socket.emit("duplicate username", m)
     }
   });
+
+  // socket.on("screen-share", (roomId,myId) => {
+   
+  //   const screenId=myId;
+  //   io.in(roomId).emit("share-screen",screenId);
+  //   for(let i=0;i<roomuser.length;i++){
+  //     if(roomuser[i].userId===myId){
+  //       roomuser[i].screenshare=true;
+  //     }
+  //   }
+  // });
+
+
+  socket.on('screen-share-started', (roomId,myId) => {
+    const screenId=myId
+    console.log("sharescreeen",roomId,myId);
+    io.in(roomId).emit("share-screen",screenId)
+  for(let i=0; i<roomuser.length;i++){
+    if(roomuser[i].userid === myId){
+      roomuser[i].screenshare= true;
+    }
+  }  
+  });
+
+  socket.on("stream-off", (roomId)=>{
+    socket.broadcast.to(roomId).emit("screen-off",roomId);
+    for(let i=0;i<roomuser.length;i++){
+      if(roomuser[i].room===roomId){
+        roomuser[i].screenshare=false;
+      }
+    }
+  })
 
 
   socket.on("join-room", (roomId, userId) => {
     console.log(`a new user ${userId} joined room ${roomId} & ${socket.id}`);
     socket.join(roomId);
+    
+    socket.emit("history", messageshistory);
+
     socketidToUserMap.set(socket.id, userId);
     socketidtoRoomMap.set(socket.id, roomId);
     const uname = socketidToUserNameMap.get(socket.id);
-    roomuser.push({ room: roomId, userid: userId, sId: socket.id, usname: uname, video: true, audio: true });
+    if (uname) {
+      roomuser.push({
+        room: roomId,
+        userid: userId,
+        sId: socket.id,
+        usname: uname,
+        video: true,
+        audio: true,
+        screenshare:false,
+      });
+    }
 
     if (!roomtohost[roomId]) {
       roomtohost[roomId] = socket.id;
     }
-    console.log("host", roomtohost);
-    io.in(roomId).emit("user-connected", userId, roomtohost, roomuser);
-    io.in(roomId).emit("host-user", roomtohost[roomId], roomuser);
 
+    io.in(roomId).emit("user-connected", userId, roomtohost, roomuser); // tell all participant in room that a new user is connected to the room
+    io.in(roomId).emit("host-user", roomtohost[roomId], roomuser); // tell the room participant that who is the host
   });
 
   socket.on("user-toggle-audio", (userId, roomId) => {
@@ -59,16 +104,16 @@ io.on("connection", (socket) => {
         roomuser[i].audio = !roomuser[i].audio;
       }
     }
-    socket.broadcast.to(roomId).emit("user-toggle-audio", userId,roomuser);
+    socket.broadcast.to(roomId).emit("user-toggle-audio", userId, roomuser);
   });
 
-  socket.on ("host-toggle-audio",(userid,roomId)=>{
+  socket.on("host-toggle-audio", (userid, roomId) => {
     for (let i = 0; i < roomuser.length; i++) {
       if (roomuser[i].userid === userid) {
         roomuser[i].audio = !roomuser[i].audio;
       }
     }
-    io.in(roomId).emit("user-toggle-audio",userid,roomuser);
+    io.in(roomId).emit("user-toggle-audio", userid, roomuser);
   })
 
   socket.on("user-toggle-video", (userId, roomId) => {
@@ -82,55 +127,153 @@ io.on("connection", (socket) => {
   });
 
   socket.on("user-leave", (userId, roomId) => {
-  
-    for (let i = 0; i < roomuser.length; i++) {
-      if (roomuser[i].userid === userId) {
-        roomuser.splice(i, 1);
-      }
-    }
-    socket.broadcast.to(roomId).emit("user-leave", userId);
-    io.in(roomId).emit("data-update", roomuser, delete_socketid);
-  });
-
-  socket.on("removeuser", (userid, roomId) => {
-    const x = userid
-    let delete_socketid;
-    for (let i = 0; i < roomuser.length; i++) {
-      if (roomuser[i].userid === x) {
-        delete_socketid = roomuser[i].sId;
-        console.log("deleting", roomuser[i]);
-        roomuser.splice(i, 1);
-      }
-    }
-
-    io.in(roomId).emit("user-leave", userid);
-    io.in(roomId).emit("data-update", roomuser, delete_socketid);
-  })
-  socket.on("disconnect", () => {
-    console.log("byeee", socket.id);
-    const curr_room = socketidtoRoomMap.get(socket.id);
-    const userId = socketidToUserMap.get(socket.id);
-    let delete_socketid;
-    if (roomtohost[curr_room]) {
+    let screenstatus=false;
+    if (roomtohost[roomId] === socket.id) {
       for (let [key, value] of socketidtoRoomMap) {
-        if (value === curr_room && key != socket.id) {
-          roomtohost[curr_room] = key;
+        if (value === roomId && key != socket.id) {
+          socketidtoRoomMap.delete(socket.id);
+          roomtohost[roomId] = key;
           break;
         }
       }
     }
     for (let i = 0; i < roomuser.length; i++) {
       if (roomuser[i].userid === userId) {
-        delete_socketid = roomuser[i].sId;
-        console.log("bye user", roomuser[i]);
+        screenstatus=roomuser[i].screenshare
+        console.log("remove ka check", screenstatus)
         roomuser.splice(i, 1);
       }
     }
-
-    socket.broadcast.to(curr_room).emit("user-leave", userId);
-    io.in(curr_room).emit("host-user", roomtohost[curr_room], roomuser);
-
+    if(screenstatus===true){
+      io.in(roomId).emit("screen-off",roomId);
+    }
+    socket.leave(roomId);
+    socket.broadcast.to(roomId).emit("user-leave", userId);
+    io.in(roomId).emit("data-update", roomuser, delete_socketid);
   });
+
+  socket.on("removeuser", (userid, roomId) => {
+    const x = userid;
+    let delete_socketid;
+    let screenstatus=false;
+    for (let i = 0; i < roomuser.length; i++) {
+      if (roomuser[i].userid === x) {
+        screenstatus=roomuser[i].screenshare
+        console.log("remove ka check", screenstatus)
+        delete_socketid = roomuser[i].sId;
+        roomuser.splice(i, 1);
+      }
+    }
+    if(screenstatus===true){
+      io.in(roomId).emit("screen-off",roomId);
+    }
+
+    if (roomtohost[roomId] === delete_socketid) {
+      for (let [key, value] of socketidtoRoomMap) {
+        if (value === roomId && key != delete_socketid) {
+          socketidtoRoomMap.delete(socket.id);
+          roomtohost[roomId] = key;
+          break;
+        }
+      }
+      io.in(roomId).emit("host-user", roomtohost[roomId], roomuser);
+    }
+
+    io.in(roomId).emit("user-leave", userid);
+    io.in(roomId).emit("data-update", roomuser, delete_socketid); 
+  });
+
+  
+  socket.on("back-button-leave", (sid) => {
+    let uid;
+    let screenstatus=false;
+    let myroom;
+    for (let i = 0; i < roomuser.length; i++) {
+      if (roomuser[i].sId === sid) {
+        uid = roomuser[i].userid;
+        myroom = roomuser[i].room;
+        screenstatus=roomuser[i].screenshare
+        console.log("back ka check", screenstatus)
+        roomuser.splice(i, 1);
+      }
+    }
+    if (roomtohost[myroom] === sid) {
+      for (let [key, value] of socketidtoRoomMap) {
+        if (value === myroom && key != sid) {
+          socketidtoRoomMap.delete(socket.id);
+          roomtohost[myroom] = key;
+          break;
+        }
+      }
+      io.in(myroom).emit("host-user", roomtohost[myroom], roomuser);
+    }
+    if(screenstatus===true){
+      socket.broadcast.to(myroom).emit("screen-off",myroom);
+    }
+    io.in(myroom).emit("user-leave", uid);
+    io.in(myroom).emit("data-update", roomuser, sid);
+  });
+
+
+  socket.on("disconnect", () => {
+    const curr_room = socketidtoRoomMap.get(socket.id);
+    const userId = socketidToUserMap.get(socket.id); 
+    let screenstatus=false;
+    let delete_socketid;
+    if (roomtohost[curr_room] === socket.id) {
+      let found = false;
+      for (let [key, value] of socketidtoRoomMap) {
+        if (value === curr_room && key != socket.id) {
+          socketidtoRoomMap.delete(socket.id);
+          roomtohost[curr_room] = key;
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        delete roomtohost[curr_room];
+      }
+    }
+    for (let i = 0; i < roomuser.length; i++) {
+      if (roomuser[i].userid === userId) {
+        delete_socketid = roomuser[i].sId;
+        screenstatus =roomuser[i].screenshare;
+        console.log("value check",screenstatus)
+        roomuser.splice(i, 1);
+      }
+    }
+    if(screenstatus===true){
+      socket.broadcast.to(curr_room).emit("screen-off",curr_room);
+    }
+
+    socket.broadcast.to(curr_room).emit("user-leave", userId); 
+    io.in(curr_room).emit("host-user", roomtohost[curr_room], roomuser); 
+  });
+
+
+
+  socket.on("fetch history", () => {
+    console.log("iiiiiiiiiiiiiiiiiii");
+    socket.emit("history", messageshistory);
+  });
+
+  socket.on("message", ({  message, roomId, userName }) => {
+    console.log({ roomId, message, userName });
+    messageshistory.push({ nmessages: message, ruser: userName , newroom: roomId});
+    if (roomId) {
+      
+      const x = messageshistory.length;
+      io.to(roomId).emit("receive-message", {
+        message,
+        userName,
+        messageshistory,
+      });
+      // console.log("Emitting Recieve Message",roomId, message, userName, messageshistory)
+    } else {
+      io.emit("receive-message", message);
+    }
+  });
+
 });
 
 function nameTaken(userName) {
@@ -139,16 +282,9 @@ function nameTaken(userName) {
       return true;
     }
   }
-
   return false;
 }
 
 server.listen(port, () => {
   console.log(`server is running on ${port}`);
 });
-
-
-
-
-
-
