@@ -43,6 +43,7 @@ function Chatroom() {
    const [screenStream, setScreenStream] = useState(null);
    const [screenpeer, setScreenPeer] = useState()
    const [showChat, setShowChat] = useState(false);
+   const [currscreenstream, setCurrScreenStream] = useState(null);
 
    const {
       players,
@@ -70,17 +71,17 @@ function Chatroom() {
 
       socket.emit("join-room", roomId);
 
-      socket.on("history", (messageshistory) => {
-         let mes = [];
-         for (let i = 0; i < messageshistory.length; i++) {
-            if (messageshistory[i].newroom == roomId) {
-               mes.push(messageshistory[i]);
-            }
-         }
+      // socket.on("history", (messageshistory) => {
+      //    let mes = [];
+      //    for (let i = 0; i < messageshistory.length; i++) {
+      //       if (messageshistory[i].newroom == roomId) {
+      //          mes.push(messageshistory[i]);
+      //       }
+      //    }
 
-         setMesuser(mes);
-         console.log("MesUser", mesuser);
-      });
+      //    setMesuser(mes);
+      //    console.log("MesUser", mesuser);
+      // });
       socket.on("welcome", (s) => { });
    }, []);
 
@@ -196,7 +197,7 @@ function Chatroom() {
       };
 
       const handleScreenShare = (screenId) => {
-         console.log("sssssss", screenId, myId);
+         console.log("share", screenId, myId);
          if (screenId != myId) {
             check = false;
          }
@@ -205,13 +206,14 @@ function Chatroom() {
       };
 
       const handleStreamOff = (roomId) => {
-         console.log("sss", screenStream);
          if (screenStream) {
             screenStream.getTracks().forEach((track) => track.stop());
             setScreenStream(null);
+            setCurrScreenStream(null);
             setScrShare(false);
          }
-      }
+      };
+
       socket.on("share-screen", handleScreenShare);
       socket.on("user-toggle-audio", handleToggleAudio);
       socket.on("user-toggle-video", handleToggleVideo);
@@ -238,8 +240,9 @@ function Chatroom() {
             console.log("aa rahiiii", incomingStream, check)
 
             if (!check) {
+               console.log("incoming tream", incomingStream);
                setScreenStream(incomingStream);
-               console.log("settting", incomingStream);
+               setCurrScreenStream(incomingStream);
                check = true;
             } else {
                if (myId && callerId !== myIdnew) {
@@ -311,7 +314,7 @@ function Chatroom() {
    };
 
    const toggleDataList = () => {
-      if(showChat){
+      if (showChat) {
          setShowChat((prev) => !prev)
       }
       setShowDataList((prev) => !prev); // Toggle the visibility state 
@@ -319,64 +322,99 @@ function Chatroom() {
 
    const toggleChat = () => {
       setShowChat((prev) => !prev)
-      if(showDataList){
+      if (showDataList) {
          setShowDataList((prev) => !prev)
       }
    }
 
 
+   let xstream = null;
    const shareScreen = async () => {
-      if (screenStream) {
-         console.log("fed", screenpeer, myId);
-         if (screenpeer === myId) {
-            screenStream.getTracks().forEach((track) => track.stop());
+      if (screenStream) {                                    //check if the screen is already shared
+         console.log("Checking", screenpeer, myId);
+         if (screenpeer === myId) {                          // checks if already shared screen is shared from the same peer
+            screenStream.getTracks().forEach((track) => track.stop()); // if its from same peer it will stop the screen share
             setScreenStream(null);
-            socket.emit("stream-off", roomId);
-            setScrShare(false);
+            setCurrScreenStream(null);
+            socket.emit("stream-off", roomId);      //emit screen off and tells everyone in the room
+            setScrShare(false);                   // set screen share value to false
          }
-
          return;
       }
       else {
+
          try {
-            const screenStreame = await navigator.mediaDevices.getDisplayMedia({
-               video: true,
-            });
-            setScreenStream(screenStreame);
+            const screenStreame = await navigator.mediaDevices.getDisplayMedia({ video: true, });  // it calls and start the screen share
+            setScreenStream(screenStreame);                   // Sets screenStream to the newly obtained screen stream (screenStreame).
+            xstream = screenStreame;
             console.log("screeeen", screenStream);
-            setScrShare(true);
+            setScrShare(true);                               // set screen share value to true
          } catch (error) {
             console.error("Error sharing screen:", error);
          }
       }
    };
 
+   if (screenStream) {
+      screenStream.getVideoTracks()[0].onended = function () {
+         screenStream.getTracks().forEach((track) => track.stop());
+         setScreenStream(null);
+         setCurrScreenStream(null)
+         socket.emit("stream-off", roomId)
+         setScrShare(false);
+         // doWhatYouNeedToDo();
+      };
+   }
    useEffect(() => {
       if (scrShare) {
-         console.log("Screen Share", screenStream);
-         socket.emit("screen-share-started", roomId, myId);
-         console.log("rrr", myId);
-         for (let i = 0; i < data.length; i++) {
-            if (data[i].userid != myId) {
-               console.log("calling");
-               const call = peer.call(data[i].userid, screenStream);
-            }
+         if (currscreenstream != screenStream && currscreenstream) {
+            screenStream.getTracks().forEach((track) => track.stop());
+            setScreenStream(currscreenstream);
          }
+         socket.emit("screen-share-started", roomId, myId);
+         socket.on("answer", (allow, uid) => {
+            console.log("ansss", allow);
+            if (allow && uid === myId) {
+               for (let i = 0; i < data.length; i++) {
+                  if (data[i].userid != myId && data[i].room === roomId) {
+                     const call = peer.call(data[i].userid, screenStream)
+                  }
+               }
+            }
+            else {
+               // remove();
+               console.log("acceess denied");
+               return;
+            }
+         })
+      }
+      return () => {
+         socket.off("answer")
       }
    }, [scrShare, players]);
+
 
    const getPlayerContainerClass = () => {
       const numUsers =
          Object.keys(nonHighlightedPlayers).length + (playerHighlighted ? 1 : 0);
       if (numUsers === 1 && !screenStream) { return styles.oneUser; }
-      else if ((numUsers === 2 && !screenStream) ||
-         (numUsers === 1 && screenStream)) {
+      else if (numUsers === 1 && screenStream) {
+         return styles.screenOne
+      }
+      else if (numUsers === 2 && screenStream) {
+         return styles.screenTwo
+      }
+      else if (numUsers === 2 && !screenStream) {
          return styles.twoUsers;
+      }
+      else if (numUsers === 3 && screenStream) {
+         return styles.screenThree
       } else if (
-         (numUsers === 3 && !screenStream) ||
-         (numUsers === 2 && screenStream)
+         (numUsers === 3 && !screenStream)
       ) {
          return styles.threeUsers;
+      } else if (numUsers === 4 && screenStream) {
+         return styles.screenFour
       } else if (
          (numUsers === 4 && !screenStream) ||
          (numUsers === 3 && screenStream)
@@ -390,7 +428,6 @@ function Chatroom() {
    };
 
 
-
    return (
       <>
          <div className={styles.main}>
@@ -400,6 +437,8 @@ function Chatroom() {
                      <Player
                         url={screenStream}
                         playing={true}
+                        muted={true}
+                        username="Screen Share"
                      />
                   )}
                   {Object.keys(nonHighlightedPlayers).map((playerId) => {
@@ -424,6 +463,7 @@ function Chatroom() {
                         url={playerHighlighted.url}
                         muted={playerHighlighted.muted}
                         playing={playerHighlighted.playing}
+                        className={screenStream ? "smallVideo" : ""}
                         isActive
                         username="Me"
                      />
@@ -496,7 +536,7 @@ function Chatroom() {
                                        <span className={`pl-2 pr-3 text-sm font-bold`}>
                                           {m.ruser}
                                        </span>
-                                       <span className=" bg-gray-700 text-white pl-2 pr-3 py-1  text-wrap h-auto ">
+                                       <span className=" bg-gray-700 rounded-[2px] text-white pl-2 pr-3 py-1  text-wrap h-auto ">
                                           {m.nmessages}
                                        </span>
                                     </div>
