@@ -213,27 +213,6 @@ io.on("connection", (socket) => {
     socket.broadcast.to(curr_room).emit("user-leave", userId);
     io.in(curr_room).emit("host-user", roomtohost[curr_room], roomuser);
   });
-
-  // socket.on("fetch history", () => {
-  //   console.log("iiiiiiiiiiiiiiiiiii");
-  //   socket.emit("history", messageshistory);
-  // });
-
-  socket.on("message", ({ message, roomId, userName }) => {
-    console.log({ roomId, message, userName });
-    // messageshistory.push({ nmessages: message, ruser: userName, newroom: roomId });
-    if (roomId) {
-      // const x = messageshistory.length;
-      io.to(roomId).emit("receive-message", {
-        message,
-        userName,
-        // messageshistory,
-      });
-      // console.log("Emitting Recieve Message",roomId, message, userName, messageshistory)
-    } else {
-      io.emit("receive-message", message);
-    }
-  });
   
   // socket.on('screen-share-started', (roomId, myId) => {
   //   const screenId = myId                           // gives the screenId to myID it represent the Id of user who started
@@ -286,6 +265,50 @@ io.on("connection", (socket) => {
     }
     io.in(roomId).emit("answer",allow,myId)  // Emit "can-share" event to all users inroom providing the roomId, userId, and screen availability status
   });
+
+
+
+    // socket.on("fetch history", () => {
+  //   console.log("iiiiiiiiiiiiiiiiiii");
+  //   socket.emit("history", messageshistory);
+  // });
+
+  // socket.on("message", ({ message, roomId, userName }) => {
+  //   console.log({ roomId, message, userName });
+  //   // messageshistory.push({ nmessages: message, ruser: userName, newroom: roomId });
+  //   if (roomId) {
+  //     // const x = messageshistory.length;
+  //     io.to(roomId).emit("receive-message", {
+  //       message,
+  //       userName,
+  //       // messageshistory,
+  //     });
+  //     // console.log("Emitting Recieve Message",roomId, message, userName, messageshistory)
+  //   } else {
+  //     io.emit("receive-message", message);
+  //   }
+  // });
+
+  socket.on("fetch history", () => {
+    console.log("iiiiiiiiiiiiiiiiiii");
+    socket.emit("history", messageshistory);
+  });
+
+
+  socket.on("message", ({ message, roomId, userName, images }) => {
+    console.log({ roomId, message, userName, images });
+    messageshistory.push({ nmessages: message, ruser: userName, images, newroom: roomId });
+    if (roomId) {
+        io.to(roomId).emit("receive-message", {
+            message,
+            userName,
+            images, // Handle multiple images
+            messageshistory,
+        });
+    } else {
+        io.emit("receive-message", { message, userName, images });
+    }
+});
 
 });
 
